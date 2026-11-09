@@ -1,0 +1,153 @@
+import { forwardRef, type ReactNode } from 'react';
+
+// ============================================================
+// 表单字段基础组件（输入框 / 下拉 / 多行）
+// 统一圆角、focus 高亮，复用于所有新增/编辑弹窗
+// ============================================================
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: 13,
+  fontWeight: 600,
+  color: 'var(--sugar-muted, #4a463e)',
+  marginBottom: 6,
+};
+
+const controlStyle: React.CSSProperties = {
+  width: '100%',
+  minHeight: 44,
+  border: '1px solid var(--sugar-line, #ece4d6)',
+  background: 'var(--sugar-surface, #faf7f0)',
+  borderRadius: 12,
+  padding: '0 14px',
+  fontSize: 14,
+  color: 'var(--sugar-ink, #1b1a17)',
+  outline: 'none',
+};
+
+/** 弹窗内的内联错误提示（替代浏览器 alert 校验） */
+export function FormError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <div
+      style={{
+        background: '#fbe0d8',
+        color: '#a23d24',
+        fontSize: 13,
+        fontWeight: 600,
+        padding: '10px 14px',
+        borderRadius: 12,
+        marginBottom: 14,
+      }}
+    >
+      {message}
+    </div>
+  );
+}
+
+export function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <label style={labelStyle}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+export const TextInput = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
+  function TextInput(props, ref) {
+    return <input ref={ref} {...props} className={`field-input ${props.className ?? ''}`.trim()} style={{ ...controlStyle, ...props.style }} />;
+  },
+);
+
+export function TextArea(
+  props: React.TextareaHTMLAttributes<HTMLTextAreaElement>,
+) {
+  return (
+    <textarea
+      {...props}
+      className={`field-input ${props.className ?? ''}`.trim()}
+      style={{ ...controlStyle, padding: '12px 14px', minHeight: 88, resize: 'vertical', ...props.style }}
+    />
+  );
+}
+
+export function Select(
+  props: React.SelectHTMLAttributes<HTMLSelectElement>,
+) {
+  return (
+    <select
+      {...props}
+      className={`field-input ${props.className ?? ''}`.trim()}
+      style={{ ...controlStyle, cursor: 'pointer', appearance: 'none', ...props.style }}
+    />
+  );
+}
+
+/** 弹窗底部主/次按钮 */
+export function PrimaryButton({
+  children,
+  accent,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { accent?: string }) {
+  return (
+    <button
+      {...props}
+      className="btn-press"
+      style={{
+        height: 44,
+        padding: '0 22px',
+        minWidth: 96,
+        border: 'none',
+        borderRadius: 12,
+        background: accent ?? 'var(--sugar-primary, #1b1a17)',
+        color: 'var(--sugar-on-accent, #f4f1ea)',
+        fontSize: 14.5,
+        fontWeight: 600,
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+        opacity: props.disabled ? 0.5 : 1,
+        ...props.style,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function GhostButton({
+  children,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      {...props}
+      className="btn-press"
+      style={{
+        height: 44,
+        padding: '0 18px',
+        minWidth: 84,
+        border: '1px solid var(--sugar-line, #e4ddcf)',
+        background: 'var(--sugar-surface, #faf7f0)',
+        borderRadius: 12,
+        fontSize: 14,
+        fontWeight: 600,
+        color: 'var(--sugar-muted, #4a463e)',
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+        opacity: props.disabled ? 0.42 : 1,
+        ...props.style,
+      }}
+    >
+      {children}
+    </button>
+  );
+}

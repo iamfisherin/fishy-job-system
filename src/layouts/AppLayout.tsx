@@ -1,0 +1,387 @@
+import CommandPalette, { openCommandPalette } from '../components/CommandPalette';
+import { useEffect, useState, type ReactNode } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { useAppShell } from '../contexts/AppShellContext';
+import { useProfile } from '../hooks/useProfile';
+import { MOBILE_MORE_NAV, MOBILE_PRIMARY_NAV, NAV_ITEMS } from '../components/navConfig';
+import ThemeSwitcher from '../components/ThemeSwitcher';
+import PaletteStudio from '../components/PaletteStudio';
+import AppSidebar from '../components/AppSidebar';
+import AvatarFeatureAnnouncement from '../components/AvatarFeatureAnnouncement';
+import AvatarPicker, { OPEN_AVATAR_PICKER_EVENT } from '../components/AvatarPicker';
+import {
+  FishyMark,
+  IconSearch,
+  IconPlus,
+  IconLogout,
+  IconMore,
+  IconClose,
+} from '../components/icons';
+import type { ScreenKey } from '../types';
+
+// ============================================================
+// 应用主框架：桌面侧边栏 + 顶栏；平板两列；手机底部导航
+// ============================================================
+export default function AppLayout({ children }: { children: ReactNode }) {
+  const { signOut } = useAuth();
+  const { theme } = useTheme();
+  const { screen, setScreen, query, setQuery, triggerAdd, headerChrome } = useAppShell();
+  const { name, avatar, updateName, updateAvatar } = useProfile();
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
+
+  const moreActive = MOBILE_MORE_NAV.some((item) => item.key === screen);
+  const pageTitle = NAV_ITEMS.find(item => item.key === screen)?.label ?? '总览';
+
+  useEffect(() => {
+    const openAvatarPicker = () => setAvatarPickerOpen(true);
+    window.addEventListener(OPEN_AVATAR_PICKER_EVENT, openAvatarPicker);
+    return () => window.removeEventListener(OPEN_AVATAR_PICKER_EVENT, openAvatarPicker);
+  }, []);
+
+  const go = (key: ScreenKey) => {
+    setScreen(key);
+    setMobileMoreOpen(false);
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        height: '100dvh',
+        maxHeight: '100dvh',
+        minHeight: 0,
+        width: '100%',
+        display: 'flex',
+        color: 'var(--sugar-ink, #1b1a17)',
+        overflow: 'hidden',
+      }}
+      className={`app-fullscreen-root${screen === 'hotCompanies' ? ' hot-companies-layout' : ''}`}
+    >
+      <div
+        className="app-fullscreen-surface"
+        style={{
+          flex: 1,
+          minWidth: 0,
+          background: 'var(--sugar-shell, #f7f3ec)',
+          display: 'flex',
+          overflow: 'hidden',
+          height: '100%',
+          maxHeight: '100%',
+          minHeight: 0,
+        }}
+      >
+        <AppSidebar
+          screen={screen}
+          onNavigate={go}
+          name={name}
+          avatar={avatar}
+          onUpdateName={updateName}
+          onAvatar={() => setAvatarPickerOpen(true)}
+          onLogout={signOut}
+        />
+
+        {/* ===== 主区 ===== */}
+        <main style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {/* 移动端顶部条（< lg 显示） */}
+          <div
+            className="sugar-mobile-header flex lg:hidden"
+            style={{
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 10,
+              padding: '14px 16px 6px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ ...brandMark, width: 38, height: 38 }}>
+                <FishyMark size={22} />
+              </div>
+              <div style={{ fontFamily: 'Geist', fontWeight: 600, fontSize: 17 }}>Fishy</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <ThemeSwitcher />
+              <button onClick={() => signOut()} aria-label="退出登录" className="btn-press" style={mobileIconBtn}>
+                <IconLogout size={17} />
+              </button>
+            </div>
+          </div>
+
+          <p
+            className="app-project-notice px-4 pt-3 lg:pt-4"
+            style={{ fontSize: 11.5, color: 'var(--sugar-ink-tertiary)', margin: 0, lineHeight: 1.55, textAlign: 'center', flex: 'none' }}
+          >
+            如有兴趣改进，可以访问{' '}
+            <a
+              href="https://github.com/iamfisherin/fishy-job-system"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#6f6659', fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 2 }}
+            >
+              GitHub 项目地址
+            </a>
+            ，记得给个 Star 哦 ⭐
+          </p>
+
+          {/* 顶栏：功能名称 + 模块切换 + 搜索 + 新增 */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: 16,
+              flexWrap: 'wrap',
+              flex: 'none',
+            }}
+            className="app-content-header px-4 lg:px-[34px] pt-3 lg:pt-[18px] pb-3 lg:pb-[18px]"
+          >
+            <div style={{ flex: 1, minWidth: 180, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <h1
+                className="app-page-title text-[20px] lg:text-[24px]"
+                style={{ fontFamily: 'Geist', fontWeight: 600, margin: 0, lineHeight: 1.3, letterSpacing: '-.01em' }}
+              >
+                {pageTitle}
+              </h1>
+              {headerChrome?.inlineContent}
+            </div>
+            <div className="flex items-center gap-3 flex-none w-full sm:w-auto">
+              {/* 主题切换仅桌面顶栏显示（移动端在顶部条） */}
+              <div className="hidden lg:block">
+                <ThemeSwitcher />
+              </div>
+              {headerChrome?.searchPlaceholder !== null && <div
+                className="flex-1 sm:flex-none"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 9,
+                  height: 46,
+                  background: 'var(--sugar-surface, #fffdf8)',
+                  borderRadius: 14,
+                  padding: '0 16px',
+                  boxShadow: '0 4px 14px rgba(60,50,35,.05)',
+                }}
+              >
+                <span style={{ color: 'var(--sugar-ink-tertiary)', flex: 'none', display: 'flex' }}>
+                  <IconSearch size={17} />
+                </span>
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={headerChrome?.searchPlaceholder ?? (screen === 'referralCodes' ? '搜索公司、推荐人、内推码…' : '搜索公司、岗位…')}
+                  aria-label={headerChrome?.searchPlaceholder ?? '搜索'}
+                  className="sm:w-[180px]"
+                  style={{ border: 'none', background: 'none', outline: 'none', fontSize: 14, width: '100%', color: '#1b1a17' }}
+                />
+              </div>}
+              <button type="button" className="sugar-command-trigger" onClick={openCommandPalette} aria-label="打开快捷操作" title="Ctrl / ⌘ K">⌘ K</button>
+              {headerChrome?.actions}
+              {(headerChrome?.primaryAction || headerChrome?.showAdd !== false) && <button aria-label={headerChrome?.primaryAction?.label ?? '新增'} onClick={headerChrome?.primaryAction?.onClick ?? triggerAdd} disabled={headerChrome?.primaryAction?.loading} className="btn-press" style={addBtn}>
+                {headerChrome?.primaryAction?.icon ?? <IconPlus size={17} />}
+                <span className="hidden sm:inline">{headerChrome?.primaryAction?.label ?? '新增'}</span>
+              </button>}
+            </div>
+          </div>
+
+          {/* 内容区（可滚动） */}
+          <AvatarFeatureAnnouncement />
+          <div
+            className="app-content-scroll scrolly px-4 lg:px-[34px] pb-24 lg:pb-[34px]"
+            style={{ flex: 1, minHeight: 0, overflowY: headerChrome?.contentScroll === false ? 'hidden' : 'auto', overscrollBehaviorY: 'contain', paddingTop: 8 }}
+          >
+            {children}
+          </div>
+        </main>
+      </div>
+
+      {/* ===== 移动端「更多」抽屉 ===== */}
+      {mobileMoreOpen && (
+        <div
+          className="flex lg:hidden"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 60,
+            background: 'rgba(40, 32, 24, 0.28)',
+            backdropFilter: 'blur(4px)',
+          }}
+          onClick={() => setMobileMoreOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'absolute',
+              left: 10,
+              right: 10,
+              bottom: 84,
+              background: 'rgba(255,253,250,0.96)',
+              borderRadius: 22,
+              boxShadow: '0 18px 40px rgba(60,50,35,.2)',
+              padding: '16px 14px 14px',
+              maxHeight: 'min(62vh, 420px)',
+              overflowY: 'auto',
+            }}
+          >
+            <div className="flex items-center justify-between" style={{ marginBottom: 12, padding: '0 4px' }}>
+              <div style={{ fontFamily: 'Geist', fontWeight: 700, fontSize: 15 }}>更多功能</div>
+              <button
+                type="button"
+                aria-label="关闭"
+                onClick={() => setMobileMoreOpen(false)}
+                style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid #e4ddcf', background: 'var(--sugar-surface, #fffdf8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <IconClose size={16} />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {MOBILE_MORE_NAV.map(({ key, label, shortLabel, Icon }) => {
+                const active = screen === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => go(key)}
+                    className="btn-press"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '14px 8px',
+                      borderRadius: 16,
+                      border: active ? '1.5px solid #1b1a17' : '1px solid #ece4d6',
+                      background: active ? '#1b1a17' : '#fffdf8',
+                      color: active ? '#f4f1ea' : '#5d584d',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Icon size={20} />
+                    <span style={{ fontSize: 12, fontWeight: 700 }}>{shortLabel || label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== 移动端底部导航（主 5 项 + 更多） ===== */}
+      <nav
+        className="flex lg:hidden"
+        style={{
+          position: 'fixed',
+          left: 10,
+          right: 10,
+          bottom: 10,
+          height: 64,
+          background: 'rgba(255,253,250,0.92)',
+          backdropFilter: 'blur(18px)',
+          WebkitBackdropFilter: 'blur(18px)',
+          borderRadius: 20,
+          boxShadow: '0 12px 30px rgba(60,50,35,.18)',
+          alignItems: 'center',
+          justifyContent: 'space-around',
+          padding: '0 4px',
+          zIndex: 50,
+        }}
+      >
+        {MOBILE_PRIMARY_NAV.map(({ key, label, shortLabel, Icon }) => {
+          const active = screen === key;
+          return (
+            <button
+              key={key}
+              onClick={() => go(key)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 3,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: active ? theme.accent : 'var(--sugar-ink-tertiary)',
+                flex: '1 1 0',
+                minWidth: 0,
+                padding: '6px 0',
+              }}
+            >
+              <Icon size={20} />
+              <span style={{ fontSize: 10, fontWeight: 600 }}>{shortLabel || label}</span>
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setMobileMoreOpen((v) => !v)}
+          aria-expanded={mobileMoreOpen}
+          aria-label="更多功能"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 3,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: moreActive || mobileMoreOpen ? theme.accent : 'var(--sugar-ink-tertiary)',
+            flex: '1 1 0',
+            minWidth: 0,
+            padding: '6px 0',
+          }}
+        >
+          <IconMore size={20} />
+          <span style={{ fontSize: 10, fontWeight: 600 }}>更多</span>
+        </button>
+      </nav>
+      <CommandPalette />
+      <PaletteStudio />
+      <AvatarPicker
+        open={avatarPickerOpen}
+        onClose={() => setAvatarPickerOpen(false)}
+        onSave={updateAvatar}
+      />
+    </div>
+  );
+}
+
+const brandMark: React.CSSProperties = {
+  width: 42,
+  height: 42,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flex: 'none',
+};
+
+const addBtn: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  height: 46,
+  padding: '0 18px',
+  border: 'none',
+  borderRadius: 14,
+  background: 'var(--sugar-primary, #1b1a17)',
+  color: 'var(--sugar-on-accent, #f4f1ea)',
+  fontSize: 14.5,
+  fontWeight: 600,
+  cursor: 'pointer',
+  whiteSpace: 'nowrap',
+  flex: 'none',
+};
+
+const mobileIconBtn: React.CSSProperties = {
+  width: 40,
+  height: 40,
+  borderRadius: 12,
+  border: '1px solid #e0d8c9',
+  background: 'var(--sugar-surface, #fffdf8)',
+  color: '#4a463e',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  flex: 'none',
+};

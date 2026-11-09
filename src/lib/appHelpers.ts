@@ -1,0 +1,103 @@
+import { paletteAccent, paletteTint } from './customPalette';
+import type { Application, ApplicationStatus } from '../types';
+import {
+  APPLICATION_STATUSES,
+  APPLICATION_STATUS_FLOW,
+  getApplicationStatusColor,
+} from './applicationStatus';
+
+export const STATUS_OPTIONS: ApplicationStatus[] = [...APPLICATION_STATUSES];
+
+export const PIPELINE: ApplicationStatus[] = [...APPLICATION_STATUS_FLOW];
+
+export function statusTag(status: ApplicationStatus): { bg: string; fg: string } {
+  const { bg, fg } = getApplicationStatusColor(status);
+  return { bg, fg };
+}
+
+export function buildSteps(status: ApplicationStatus) {
+  const terminal = ['已拒绝', '已放弃', '人才库', '待跟进'].includes(status);
+  const progress: ApplicationStatus =
+    status === '已拒绝' || status === '已放弃' ? '一面' :
+    status === '人才库' || status === '待跟进' ? '已投递' :
+    status;
+  const activeIndex = PIPELINE.indexOf(progress);
+  const offer = status === 'Offer';
+  const rejected = status === '已拒绝' || status === '已放弃';
+
+  return PIPELINE.map((label, index) => {
+    const reached = terminal ? index <= activeIndex : index <= activeIndex;
+    let dotBg = '#e7dfd0';
+    let dotFg = 'var(--sugar-ink-tertiary)';
+
+    if (reached) {
+      if (offer) {
+        dotBg = '#5fa86b';
+        dotFg = '#fff';
+      } else if (rejected) {
+        dotBg = '#f0613f';
+        dotFg = '#fff';
+      } else {
+        dotBg = '#1b1a17';
+        dotFg = '#f4c84a';
+      }
+    }
+
+    const lineOn = reached ? (offer ? '#a7d2ac' : rejected ? '#f3b3a1' : '#cfc6b4') : '#efe9dd';
+
+    return {
+      idx: index + 1,
+      label,
+      dotBg,
+      dotFg,
+      lineL: index === 0 ? 'transparent' : lineOn,
+      lineR: index === PIPELINE.length - 1 ? 'transparent' : index < activeIndex ? lineOn : '#efe9dd',
+      labelColor: label === progress ? '#1b1a17' : 'var(--sugar-ink-tertiary)',
+      labelWeight: label === progress ? 700 : 500,
+    };
+  });
+}
+
+export function initialOf(name: string): string {
+  return name ? name.trim().charAt(0) : '?';
+}
+
+const AVATAR_COLORS = [
+  { bg: '#1b1a17', fg: '#f4c84a' },
+  { bg: '#dcebd5', fg: '#2f5d36' },
+  { bg: '#fbeec2', fg: '#7a5a12' },
+  { bg: '#fbe0d8', fg: '#a23d24' },
+  { bg: '#dde8fb', fg: '#345b9a' },
+  { bg: '#ece8fb', fg: '#5a4fb0' },
+];
+
+export function avatarColor(name: string) {
+  let sum = 0;
+  for (let i = 0; i < name.length; i++) sum += name.charCodeAt(i);
+  const colors = AVATAR_COLORS[sum % AVATAR_COLORS.length];
+  return { bg: paletteTint(name, colors.bg), fg: paletteAccent(name, colors.fg) };
+}
+
+export function matchApp(application: Application, query: string): boolean {
+  if (!query) return true;
+  const text = query.toLowerCase();
+  return [
+    application.company_name,
+    application.position_name,
+    application.city,
+    application.channel,
+    application.jd_text,
+    application.jd_keywords?.join(' '),
+    application.match_summary,
+    application.next_action,
+    application.notes,
+  ]
+    .filter(Boolean)
+    .some((value) => (value as string).toLowerCase().includes(text));
+}
+
+export const CARD: React.CSSProperties = {
+  background: 'var(--sugar-surface, #fffdf8)',
+  borderRadius: 22,
+  boxShadow: '0 6px 18px rgba(60,50,35,.05)',
+};

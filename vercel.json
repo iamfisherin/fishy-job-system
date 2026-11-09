@@ -1,0 +1,45 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/mail-interview-sync.js": {
+      "maxDuration": 120,
+      "memory": 1024
+    },
+    "api/mailbox-fetch.js": {
+      "maxDuration": 30,
+      "memory": 1024
+    },
+    "api/cron-campus-recruitment.ts": {
+      "maxDuration": 120,
+      "memory": 1024
+    },
+    "api/profile-ai-analyze.ts": {
+      "maxDuration": 120,
+      "memory": 1024
+    },
+    "api/profile-resume-parse.ts": {
+      "maxDuration": 30,
+      "memory": 1024,
+      "includeFiles": "node_modules/pdf-parse/lib/pdf.js/v1.10.100/build/**"
+    },
+    "api/resume-company-upload.ts": {
+      "maxDuration": 30,
+      "memory": 1024
+    },
+    "api/standard-companies-import.ts": {
+      "maxDuration": 30
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron-campus-recruitment",
+      "schedule": "0 0 * * *"
+    }
+  ],
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/" }
+  ]
+}

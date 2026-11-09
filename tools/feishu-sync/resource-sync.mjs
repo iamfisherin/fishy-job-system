@@ -1,0 +1,20 @@
+import { createPrivateKey, sign } from 'node:crypto';
+import { readFile, writeFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+
+const [id, action = 'apply'] = process.argv.slice(2);
+if (!['company-catalog', 'interview-experiences'].includes(id) || !['preview', 'apply', 'failure'].includes(action)) throw new Error('INVALID_RESOURCE_COMMAND');
+const dir = process.env.FEISHU_SYNC_STATE_DIR || join(homedir(), '.sugar-job-system', 'feishu-sync');
+const source = id === 'interview-experiences' && action !== 'failure' ? JSON.parse(await readFile(join(dir, 'output', 'experiences.json'), 'utf8')) : {};
+const endpoint = process.env.FEISHU_RESOURCE_SYNC_URL;
+if (!endpoint || new URL(endpoint).protocol !== 'https:') throw new Error('RESOURCE_ENDPOINT_NOT_CONFIGURED');
+const body = JSON.stringify({ resource_id: id, action, ...source });
+const timestamp = String(Date.now());
+const pem = process.env.FEISHU_SYNC_SIGNING_KEY || await readFile(join(dir, 'sync-signing-private.pem'), 'utf8');
+const signature = sign(null, Buffer.from(`${timestamp}\n${body}`), createPrivateKey(pem)).toString('base64url');
+const response = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json', 'x-catalog-timestamp': timestamp, 'x-catalog-signature': signature }, body, signal: AbortSignal.timeout(90_000) });
+const result = await response.json();
+if (!response.ok || !result.ok) throw new Error(`RESOURCE_SYNC_FAILED:${result.error || response.status}`);
+console.log(JSON.stringify(result));
+if (process.env.GITHUB_STEP_SUMMARY) await writeFile(process.env.GITHUB_STEP_SUMMARY, `\n### 飞书同步状态\n\n资料：${id}；结果：${action}；面经：${result.count || 0} 篇。\n`, { flag: 'a' });
